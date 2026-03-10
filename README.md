@@ -1,18 +1,23 @@
 # Machine Learning with CICD
 
 
+
 ## Environment variable for APPS
+
 ### AWS Integration
-`PREDICTION_API_URL=yourAPIGATEWAYURL`<br/>
-`FORECAST_API_URL=yourAPIGATEWAYURL`<br/>
-`API_GATEWAY_KEY=yourAPIGATEWAYKEY`<br/>
+
+- `PREDICTION_API_URL`: API Gateway Prediction URL (format: `https://<id-apigateway>.execute-api.<region>.amazonaws.com/<stage>/predictions`) **(Required)**
+- `FORECAST_API_URL`: API Gateway Forecast URL (format: `https://<id-apigateway>.execute-api.<region>.amazonaws.com/<stage>/forecasts`) **(Required)**
+- `API_GATEWAY_KEY`: API Gateway Key **(Optional)**
 
 ### AWS Credential
-`AWS_ACCESS_KEY_ID=yourAWS_ACCESS_KEY`<br/>
-`AWS_SECRET_ACCESS_KEY=yourSECRET_ACCESS`<br/>
-`AWS_SESSION_TOKEN=yoursessionToken`<br/>
+
+- `AWS_ACCESS_KEY_ID`: sts assume-role access key id **(Required)**
+- `AWS_SECRET_ACCESS_KEY`: sts assume-role secret access key **(Required)**
+- `AWS_SESSION_TOKEN`: sts assume-role session token **(Required)**
 
 ### Flask Config
-FLASK_HOST=0.0.0.0<br/>
-FLASK_PORT=5000<br/>
-FLASK_DEBUG=true<br/>
+
+- `FLASK_HOST`: Host **(Optional)**
+- `FLASK_PORT`: Port **(Optional)**
+- `FLASK_DEBUG`: Debug **(Optional)**
