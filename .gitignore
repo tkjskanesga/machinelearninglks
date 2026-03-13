@@ -6,3 +6,4 @@ prod-*.csv
 .csv
 compose.yml
 docker-compose.yml
+.env
