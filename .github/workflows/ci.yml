@@ -125,22 +125,34 @@ jobs:
       - name: Create Example Dataset CSV
         run: |
           cd ./dataset
-          python dataset.py
+          python dataset.py > python_log.txt 2>&1
+          cat python_log.txt
+          echo "PYTHON_LOG<<EOF" >> $GITHUB_ENV
+          cat python_log.txt >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
       - name: Upload CSV to Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: dataset
           name: "Dataset CSV"
           body: |
-            ## Image Version
+            ## 📦 Image Version
 
             - **Frontend:** `ghcr.io/${{ github.repository }}:frontend-${{ needs.execute-init.outputs.VERSION_IMAGE }}`
             - **LLM Integrate SNS:** `ghcr.io/${{ github.repository }}:llm-webhook-${{ needs.execute-init.outputs.VERSION_IMAGE }}`
             
-            ## Example Dataset 📊
+            ## 📊 Example Dataset
             
             This is an auto-generated dataset CSV file created by the CI/CD pipeline.
             
             **Source:** Generated from [`dataset/dataset.py`](https://github.com/tkjskanesga/machinelearninglks/blob/main/dataset/dataset.py)
+
+            ## 📝 Log Dataset
+            <details>
+              <summary>View Log Dataset</summary>
+              ```text
+              ${{ env.PYTHON_LOG }}
+              ```
+            </details>
           files: ./dataset/*.csv
           make_latest: true
