@@ -1,0 +1,15 @@
+services:
+  backend:
+    image: alpine
+    container_name: public.ecr.aws/xxxxxxx/llm-webhook-sns:latest
+    restart: unless-stopped
+    network_mode: "host"
+    ports:
+      - 8080:8080
+    environment:
+      - OLLAMA_ENDPOINT=http://localhost:11434/api/generate
+      - OLLAMA_MODEL=qwen2.5:1.5b
+      - SNS_TOPIC_ARN=arn:aws:sns:us-east-1:xxxxx:yyyyy
+      - LIST_SNS_TOPIC_ARN='{"xxxxx":"/aws/lambda/xxxxx","yyyyyy":"/aws/lambda/yyyyyyy"}'
+      - AWS_REGION=us-east-1
+      - PORT=8080
