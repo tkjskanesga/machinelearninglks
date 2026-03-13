@@ -1,7 +1,5 @@
 # Machine Learning with CICD
 
-
-
 ## Environment variable for APPS
 
 ### AWS Integration
