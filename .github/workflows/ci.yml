@@ -150,9 +150,11 @@ jobs:
             ## 📝 Log Dataset
             <details>
               <summary>View Log Dataset</summary>
-              ```text
+
+              ```txt
               ${{ env.PYTHON_LOG }}
               ```
+
             </details>
           files: ./dataset/*.csv
           make_latest: true
