@@ -12,21 +12,17 @@
 </head>
 <body class="bg-gray-50 min-h-screen">
     <div class="container mx-auto px-4 py-8">
-        <!-- Header -->
         <header class="text-center mb-12">
             <h1 class="text-4xl font-bold text-primary mb-2">📈 Product Demand Forecast</h1>
             <p class="text-lg text-gray-600">AI-powered sales forecasting for inventory planning</p>
         </header>
 
-        <!-- Main Content -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Input Panel -->
             <div class="lg:col-span-1">
                 <div class="card bg-base-100 shadow-lg sticky top-4">
                     <div class="card-body">
                         <h2 class="card-title">Forecast Parameters</h2>
                         <form id="forecast-form" class="space-y-4">
-                            <!-- Product Section -->
                             <div class="form-control">
                                 <label class="label">
                                     <span class="label-text">Product ID</span>
@@ -34,7 +30,6 @@
                                 <input type="text" id="product-id" class="input input-bordered" placeholder="prod_00001" required>
                             </div>
                             
-                            <!-- Forecast Horizon -->
                             <div class="form-control">
                                 <label class="label">
                                     <span class="label-text">Forecast Period (days)</span>
@@ -57,7 +52,6 @@
                     </div>
                 </div>
                 
-                <!-- Summary Stats -->
                 <div class="card bg-base-100 shadow-lg mt-6">
                     <div class="card-body">
                         <h2 class="card-title">Historical Summary</h2>
@@ -70,9 +64,7 @@
                 </div>
             </div>
             
-            <!-- Results Panel -->
             <div class="lg:col-span-2 space-y-6">
-                <!-- Forecast Chart -->
                 <div class="card bg-base-100 shadow-lg">
                     <div class="card-body">
                         <h2 class="card-title">Demand Forecast</h2>
@@ -96,15 +88,13 @@
                                         </tr>
                                     </thead>
                                     <tbody id="forecast-table-body">
-                                        <!-- Table content will be populated by JavaScript -->
-                                    </tbody>
+                                        </tbody>
                                 </table>
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Recommendations -->
                 <div class="card bg-base-100 shadow-lg">
                     <div class="card-body">
                         <h2 class="card-title">Inventory Recommendations</h2>
@@ -163,14 +153,18 @@
                 clearAlerts();
                 
                 try {
-                    const response = await fetch('/api/forecast', {
+                    // [PERBAIKAN] Mengarahkan request ke port 8080 di hostname yang sama
+                    const currentHost = window.location.hostname;
+                    const apiUrl = `http://${currentHost}:8080/api/forecast`;
+
+                    const response = await fetch(apiUrl, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
                             product_id: productId,
-                            forecast_days: parseInt(forecastDays)
+                            periods: parseInt(forecastDays)  // [FIX] Lambda membaca 'periods', bukan 'forecast_days'
                         })
                     });
                     
@@ -179,8 +173,20 @@
                         throw new Error(error.error || 'Forecast failed');
                     }
                     
-                    const data = await response.json();
-                    
+                    let data = await response.json();
+
+                    // [DEBUG] Lihat struktur response mentah dari Lambda
+                    console.log('RAW Lambda response:', JSON.stringify(data, null, 2));
+
+                    // [PERBAIKAN] Jika API membungkus responsenya dalam 'body' (umum terjadi di Lambda/Serverless)
+                    if (data.body) {
+                        data = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
+                        console.log('PARSED body:', JSON.stringify(data, null, 2));
+                    }
+
+                    // [FIX] Lambda mengembalikan struktur flat, UI mengharapkan struktur nested
+                    data = normalizeLambdaResponse(data);
+
                     // Update UI
                     updateForecastUI(data);
                     
@@ -192,7 +198,52 @@
                     spinner.classList.add('hidden');
                 }
             }
-            
+
+            // Normalisasi struktur flat dari Lambda ke format nested yang diharapkan UI
+            function normalizeLambdaResponse(data) {
+                const values = (data.forecast || []).map(v => Math.round(v));
+                const periods = values.length;
+
+                // [FIX] Jika forecast_dates kosong, generate sendiri dari hari ini
+                let dates = data.forecast_dates || [];
+                if (dates.length === 0 && periods > 0) {
+                    const today = new Date();
+                    dates = Array.from({ length: periods }, (_, i) => {
+                        const d = new Date(today);
+                        d.setDate(today.getDate() + i + 1);
+                        return d.toISOString().split('T')[0];
+                    });
+                }
+
+                // Confidence interval ±15%
+                const lower = values.map(v => Math.max(0, Math.round(v * 0.85)));
+                const upper = values.map(v => Math.round(v * 1.15));
+
+                // [FIX] Gunakan summary dari Lambda jika ada, fallback ke historical_average
+                const summary = data.summary || {};
+                const avg = data.historical_average || 0;
+                const totalForecast = summary.total_forecast || values.reduce((a, b) => a + b, 0);
+                const avgDaily = summary.average_daily || (periods > 0 ? totalForecast / periods : 0);
+
+                const historical_summary = {
+                    last_30_days:  Math.round(avgDaily * 30),
+                    last_90_days:  Math.round(avgDaily * 90),
+                    last_365_days: Math.round(avgDaily * 365)
+                };
+
+                console.log('Normalized forecast values:', values.slice(0, 5), '... dates:', dates.slice(0, 3));
+                console.log('Historical summary computed:', historical_summary);
+
+                return {
+                    forecast: {
+                        dates:  dates,
+                        values: values,
+                        confidence_intervals: { lower, upper }
+                    },
+                    historical_summary: historical_summary
+                };
+            }
+
             function updateForecastUI(data) {
                 // Update summary stats
                 updateSummaryStats(data.historical_summary);
