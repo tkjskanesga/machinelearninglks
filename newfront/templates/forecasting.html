@@ -163,7 +163,9 @@
                 clearAlerts();
                 
                 try {
-                    const response = await fetch('/api/forecast', {
+                    const currentHost = window.location.hostname; 
+                    const apiUrl = `http://${currentHost}:8080/api/forecast`; 
+                    const response = await fetch(apiUrl, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -171,19 +173,25 @@
                         body: JSON.stringify({
                             product_id: productId,
                             forecast_days: parseInt(forecastDays)
-                        })
+                        }) 
                     });
-                    
+                
                     if (!response.ok) {
                         const error = await response.json().catch(() => ({}));
                         throw new Error(error.error || 'Forecast failed');
                     }
-                    
-                    const data = await response.json();
-                    
+
+                    let data = await response.json();
+                    // Tambahan wajib untuk membongkar data dari AWS API Gateway / Lambda
+                    if (data.body && typeof data.body === 'string') {
+                        data = JSON.parse(data.body);
+                    } else if (data.body && typeof data.body === 'object') {
+                        data = data.body;
+                    }
+
                     // Update UI
                     updateForecastUI(data);
-                    
+
                 } catch (error) {
                     console.error('Forecast error:', error);
                     showAlert(`Error: ${error.message}`, 'error');
