@@ -147,9 +147,15 @@
                 btnText.textContent = 'Predicting...';
                 spinner.classList.remove('hidden');
                 clearAlerts();
-                
-                try {
-                    const response = await fetch('/api/predict', {
+                    
+              try {
+                    const currentHost = window.location.hostname; 
+                    const apiUrl = `http://${currentHost}:8080/api/predict`;
+                    
+                    // PERBAIKAN 1: Pastikan ujungnya /api/predict, BUKAN /api/forecast
+                   
+                    
+                    const response = await fetch(apiUrl, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -160,20 +166,26 @@
                             context: {
                                 user_state: userContext
                             }
-                        })
+                        }) 
                     });
-                    
+                
                     if (!response.ok) {
                         const error = await response.json().catch(() => ({}));
-                        throw new Error(error.message || 'Prediction failed');
+                        throw new Error(error.error || error.message || 'Prediction failed');
                     }
-                    
-                    const data = await response.json();
-                    
+
+                    let data = await response.json();
+
+                    // PERBAIKAN 2: Tambahkan kode pembongkar data AWS di sini
+                    if (data.body && typeof data.body === 'string') {
+                        data = JSON.parse(data.body);
+                    } else if (data.body && typeof data.body === 'object') {
+                        data = data.body;
+                    }
+
                     // Update UI
                     updatePredictionUI(data);
                     updateHistory(data);
-                    
                 } catch (error) {
                     console.error('Prediction error:', error);
                     showAlert(`Error: ${error.message}`, 'error');
